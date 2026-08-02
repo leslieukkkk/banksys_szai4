@@ -8,9 +8,9 @@
 
 ## 当前状态 (最后更新: 2026-08-02 · by AI)
 
-- **阶段**:`US-2 开发完成,待 PR(六步流程第④步)`
-- **上一步完成**:`feature/6-data-analysis` 开发完成 —— analysis.py 纯逻辑(过滤/聚合/3 种图表)+ app.py 导航重构 + 22 个测试;本地自检全绿(覆盖率 98%);streamlit 真跑冒烟通过(health `ok` / 首页 200)。
-- **下一步 (TODO 第一条)**:✋等确认门 4 → 提交 push → PR(closes #6)。
+- **阶段**:`US-4 开发完成,待 PR(六步流程第④步)`
+- **上一步完成**:`feature/8-online-prediction` 开发完成 —— ml/predict.py(加载/校验/预测)+ app.py 预测页(21 特征表单)+ 38 个测试全绿(覆盖率 96.5%);streamlit 冒烟通过。
+- **下一步 (TODO 第一条)**:✋等确认门 4 → 提交 push → PR(closes #8)。
 - **阻塞项**:无(等人类确认)
 
 ---
@@ -32,8 +32,8 @@
 - [x] 第⑤步 PR #2(https://github.com/leslieukkkk/banksys_szai4/pull/2)CI 全绿,人类已合并
 - [x] 第⑥步 CD 首次失败 → fix/1-cd-healthcheck-wait 修复(等待就绪循环,PR #3)合并后 CD 重跑成功:健康检查 `ok`,部署成功 http://<服务器>:8888
 - [x] US-3 离线训练(issue #4 / PR #5):已合并上线,RF-100 AUC=0.8929,镜像构建时训练
-- [~] US-2 数据分析页(issue #6 / feature/6-data-analysis):开发完成待 PR
-- [ ] 后续 US-4(在线预测),新分支 + PR
+- [x] US-2 数据分析页(issue #6 / PR #7):已合并上线,http://<服务器>:8888 数据分析页可用
+- [~] US-4 在线预测(issue #8 / feature/8-online-prediction):开发完成待 PR
 - [ ] 会话结束前更新本文件
 
 ---
@@ -59,6 +59,14 @@
   根因:Streamlit 首启需导入 pandas/pyarrow 等依赖,服务就绪可达十几秒;立即 curl 收到 connection reset(exit 56,curl 默认不重试)。
   解决:deploy.sh 改为等待就绪循环(20 次 × 3s,`curl -fsS` 成功后退出)。
   验证:fix/1-cd-healthcheck-wait 合并后 CD 重跑(待验证)。
+- 现象:测试 `test_main_exit_code_follows_auc_gate` monkeypatch `train.MODEL_PATH` 后,真实 `models/model.joblib` 被写成假对象(线上预测页报错 `'object' object has no attribute 'predict_proba'`)。
+  根因:`save_artifacts` 的默认参数 `model_path=MODEL_PATH` 在**函数定义时**绑定真实路径,运行期 monkeypatch 模块常量不生效;测试经 main() 间接把假模型写进了真实产物路径。
+  解决:main() 路径测试改为 monkeypatch `save_artifacts` 为 no-op;`save_artifacts` 本身用显式 tmp_path 参数单测。
+  验证:重跑 `python -m ml.train` 恢复真实模型,38 passed;预测页真实模型端到端测试通过。
+- 现象:Windows 下 `conda run -n banksys_szai4 pytest` 偶发崩溃(输出重编码 GBK 报错),改用环境内 python 直接跑正常。
+  根因:conda run 捕获子进程 stdout 后按 GBK 重新打印,输出含不可编码字符即崩(pytest 输出有特殊字符时触发)。
+  解决:本地用 `C:\Users\G-dragonww\.conda\envs\banksys_szai4\python.exe` 直接跑,或 `PYTHONIOENCODING=utf-8`;CI/服务器是 Linux UTF-8 不受影响。
+  验证:直接调用 python 全绿。
 - 现象:plotly `px.bar(color=...)` 会按 color 取值拆成多条 trace,`fig.data[0]` 只含单个类别,测试断言 `len(fig.data)==1` 失败。
   根因:plotly express 的 color 参数是分组语义,不是"填色"语义。
   解决:不需要分组配色时不传 color;测试里按实际 trace 结构断言。
@@ -75,3 +83,4 @@
 
 - [x] US-1 初始化工程化与 CI/CD:六步流程完整跑通(建仓→分支→模块开发→本地自检→PR→人工合并→CD 部署),服务在主机 8888 运行,`/_stcore/health` 返回 `ok`
 - [x] US-3 离线训练与模型产物:`python -m ml.train` 闭环(模型+评估报告+test 预测文件),RF-100 holdout AUC=0.8929,门禁 0.80 通过;镜像构建时训练,模型随镜像上线
+- [x] US-2 数据分析交互页面:概览指标 + 类别/数值筛选联动 + 目标分布/类别认购占比/数值分布三图联动 + 数据预览,纯函数逻辑 100% 单测覆盖

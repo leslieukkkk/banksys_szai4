@@ -6,6 +6,7 @@
 import streamlit as st
 
 import analysis
+from ml import predict as predict_ml
 from ml.preprocessing import CATEGORICAL_FEATURES, NUMERIC_FEATURES
 
 st.set_page_config(
@@ -71,9 +72,44 @@ def render_analysis_page() -> None:
 
 
 def render_prediction_page() -> None:
-    """在线预测页(US-4 实现,当前占位提示)。"""
+    """在线预测页(US-4):点选输入 21 特征,预测是否认购(逻辑见 ml/predict.py)。"""
     st.header("🔮 在线预测")
-    st.info("在线预测功能开发中(US-4)。")
+    df = _load_train()
+    options = predict_ml.load_category_options(df)
+    numeric_ranges = predict_ml.load_numeric_ranges(df)
+
+    try:
+        model = predict_ml.load_model()
+    except FileNotFoundError as exc:
+        st.error(str(exc))
+        return
+
+    st.subheader("客户信息输入")
+    sample: dict = {}
+    with st.form("prediction_form"):
+        columns = st.columns(2)
+        for i, col in enumerate(CATEGORICAL_FEATURES):
+            with columns[i % 2]:
+                sample[col] = st.selectbox(col, options[col], key=f"cat_{col}")
+        for i, col in enumerate(NUMERIC_FEATURES):
+            with columns[i % 2]:
+                lo, hi = numeric_ranges[col]
+                sample[col] = st.number_input(
+                    col, min_value=lo, max_value=hi, value=(lo + hi) / 2, key=f"num_{col}"
+                )
+        submitted = st.form_submit_button("预测是否认购")
+
+    if submitted:
+        result = predict_ml.predict_one(sample, options, numeric_ranges, model=model)
+        for warning in result["warnings"]:
+            st.warning(warning)
+        if result["errors"]:
+            st.error("输入有误,请修正: " + " ; ".join(result["errors"]))
+            return
+        verdict = "会认购 ✅" if result["subscribe"] == "yes" else "不会认购 ❌"
+        st.success(f"预测结果:{verdict}")
+        st.metric("认购概率", f"{result['proba']:.2%}")
+        st.caption("模型:随机森林 RF-100(holdout AUC 0.893,阈值 0.5)")
 
 
 page = st.sidebar.radio("页面", ["📊 数据分析", "🔮 在线预测"])

@@ -91,9 +91,9 @@ def test_main_exit_code_follows_auc_gate(monkeypatch, tmp_path, auc, expected_ex
     sample.to_csv(tmp_path / "train.csv", index=False)
     pd.DataFrame({"id": [1, 2]}).to_csv(tmp_path / "test.csv", index=False)
     monkeypatch.setattr(train, "DATA_DIR", tmp_path)
-    monkeypatch.setattr(train, "MODEL_PATH", tmp_path / "model.joblib")
-    monkeypatch.setattr(train, "REPORT_PATH", tmp_path / "eval_report.json")
-    monkeypatch.setattr(train, "PREDICTIONS_PATH", tmp_path / "test_predictions.csv")
+    # save_artifacts 默认参数在定义时绑定真实路径,monkeypatch 模块常量无效;
+    # 直接置空导出,避免测试把假模型写进真实 models/(见 PROGRESS GOTCHAS)
+    monkeypatch.setattr(train, "save_artifacts", lambda *args, **kwargs: None)
     monkeypatch.setattr(
         train,
         "train_evaluate",
