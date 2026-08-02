@@ -12,7 +12,11 @@ RUN pip install --no-cache-dir --timeout 120 -i "${PIP_INDEX_URL}" -r requiremen
 
 # 应用与公开数据(模型产物 models/ 不进 Git,由训练生成,见 standards/00)
 COPY app.py .
+COPY ml/ ml/
 COPY data/ data/
+
+# 构建时离线训练生成模型(models/model.joblib 等),镜像与模型绑定,无陈旧产物
+RUN python -m ml.train
 
 EXPOSE 8501
 

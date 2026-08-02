@@ -38,7 +38,11 @@ pip install -r requirements-dev.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 # 3) 运行应用(http://localhost:8501)
 streamlit run app.py
 
-# 4) 本地自检(提交前必须全绿)
+# 4) 离线训练(产出 models/model.joblib、eval_report.json、test_predictions.csv;
+#    holdout AUC < 0.80 时以非零码退出)
+python -m ml.train
+
+# 5) 本地自检(提交前必须全绿)
 ruff format --check .
 ruff check .
 pytest --cov --cov-fail-under=80

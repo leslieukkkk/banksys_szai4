@@ -28,5 +28,8 @@ jobs:
       - name: 单元测试 + 覆盖率(门禁 80%)
         run: pytest --cov --cov-fail-under=80
 
+      - name: 模型训练门禁(AUC ≥ 0.80)
+        run: python -m ml.train
+
       - name: Docker 构建检查
         run: docker build -t banksys_szai4:ci .
