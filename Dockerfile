@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir --timeout 120 -i "${PIP_INDEX_URL}" -r requiremen
 
 # 应用与公开数据(模型产物 models/ 不进 Git,由训练生成,见 standards/00)
 COPY app.py .
+COPY analysis.py .
 COPY ml/ ml/
 COPY data/ data/
 
