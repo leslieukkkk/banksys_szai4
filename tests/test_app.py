@@ -1,6 +1,17 @@
-"""Streamlit 应用冒烟测试(US-1 占位首页 → US-2 导航重构)。"""
+"""Streamlit 应用冒烟测试(US-1 占位首页 → US-2 导航 → US-4 预测表单)。"""
 
+import numpy as np
 from streamlit.testing.v1 import AppTest
+
+from ml import predict
+from ml.preprocessing import CATEGORICAL_FEATURES, NUMERIC_FEATURES
+
+
+class FakePipeline:
+    """固定概率的假 pipeline,避免测试依赖真实模型文件(CI 中模型未训练)。"""
+
+    def predict_proba(self, X):
+        return np.array([[0.7, 0.3]])
 
 
 def test_app_renders_title():
@@ -22,11 +33,42 @@ def test_app_analysis_page_is_default():
     assert len(at.metric) == 4
 
 
-def test_app_switches_to_prediction_placeholder():
-    at = AppTest.from_file("app.py").run()
+def test_app_prediction_page_renders_full_form(monkeypatch):
+    # 模型缺失时页面给出提示而不是崩溃(US-4 AC3)
+    monkeypatch.setattr(predict, "load_model", lambda: FakePipeline())
 
+    at = AppTest.from_file("app.py").run()
     at.sidebar.radio[0].set_value("🔮 在线预测").run()
 
     assert not at.exception
     assert at.header[0].value == "🔮 在线预测"
-    assert "开发中" in str(at.info[0].value)
+    # 21 个特征控件 + 提交按钮(US-4 AC1)
+    assert len(at.selectbox) == len(CATEGORICAL_FEATURES)
+    assert len(at.number_input) == len(NUMERIC_FEATURES)
+    assert len(at.button) == 1
+
+
+def test_app_prediction_missing_model_shows_hint(monkeypatch):
+    def raise_missing():
+        raise FileNotFoundError("模型文件不存在 —— 请先运行 python -m ml.train 生成模型")
+
+    monkeypatch.setattr(predict, "load_model", raise_missing)
+
+    at = AppTest.from_file("app.py").run()
+    at.sidebar.radio[0].set_value("🔮 在线预测").run()
+
+    assert not at.exception
+    assert "python -m ml.train" in str(at.error[0].value)
+
+
+def test_app_prediction_submit_shows_result(monkeypatch):
+    monkeypatch.setattr(predict, "load_model", lambda: FakePipeline())
+
+    at = AppTest.from_file("app.py").run()
+    at.sidebar.radio[0].set_value("🔮 在线预测").run()
+    at.button[0].click().run()
+
+    assert not at.exception
+    # FakePipeline 概率 0.3 < 0.5 → 不会认购
+    assert "不会认购" in str(at.success[0].value)
+    assert at.metric[0].label == "认购概率"
