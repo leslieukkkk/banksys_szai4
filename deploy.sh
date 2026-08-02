@@ -8,8 +8,9 @@ cd "$(dirname "$0")"
 
 APP="banksys_szai4"
 IMAGE="${APP}:latest"
-HOST_PORT=8888        # 宿主机公网端口:用户要求固定 8888,不回退(见 standards/00)
-CONTAINER_PORT=8501   # 容器内 Streamlit 监听端口,与 Dockerfile CMD 一致;映射 8888:8501
+PREFERRED_PORT=8888   # 首选宿主机公网端口(见 standards/00 占位符取值)
+PORT_MAX=8899         # 预留区间上限:共享服务器可能被其他项目占用,自动顺延空闲端口
+CONTAINER_PORT=8501   # 容器内 Streamlit 监听端口,与 Dockerfile CMD 一致
 HEALTHCHECK="/_stcore/health"  # Streamlit 官方健康端点(Streamlit 不支持自定义路由)
 
 # 国内服务器用清华源加速依赖下载
@@ -17,6 +18,26 @@ docker build --build-arg PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple 
 
 # 只停删本项目自己的旧容器,不碰其他同学的容器/镜像/服务
 docker rm -f "${APP}" 2>/dev/null || true
+
+port_in_use() {
+  ss -ltnH 2>/dev/null | grep -q ":$1 " && return 0
+  docker ps --format "{{.Ports}}" 2>/dev/null | grep -q ":$1->" && return 0
+  return 1
+}
+
+# 选空闲端口:首选 8888,被占用则顺延(05 规范 §4;共享服务器场景,不删除他人容器)
+HOST_PORT=""
+for p in $(seq "${PREFERRED_PORT}" "${PORT_MAX}"); do
+  if ! port_in_use "${p}"; then
+    HOST_PORT="${p}"
+    break
+  fi
+done
+if [ -z "${HOST_PORT}" ]; then
+  echo ">> 预留端口区间 ${PREFERRED_PORT}-${PORT_MAX} 已全部占用,部署中止" >&2
+  exit 1
+fi
+echo ">> 部署到主机端口 ${HOST_PORT}"
 
 if ! docker run -d --name "${APP}" --restart unless-stopped -p "${HOST_PORT}:${CONTAINER_PORT}" "${IMAGE}"; then
   echo ">> docker run 失败,当前占用 ${HOST_PORT} 的容器:" >&2

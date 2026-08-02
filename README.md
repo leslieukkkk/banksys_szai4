@@ -56,8 +56,8 @@ feature 分支 → PR → CI(格式/lint/测试/覆盖率 80%/docker build)
 ```
 
 - **CI**:PR 与 push main 时运行,红灯不合并。
-- **CD**:合并 main 自动部署到服务器,固定公网端口 **8888**。
-- **健康检查**:`http://<服务器>:8888/_stcore/health`(Streamlit 官方端点,返回 `ok`)。
+- **CD**:合并 main 自动部署到服务器;公网端口首选 **8888**,被占用时在 **8888-8899** 区间自动顺延(共享服务器,**最终端口以 CD 日志为准**)。
+- **健康检查**:`http://<服务器>:<端口>/_stcore/health`(Streamlit 官方端点,返回 `ok`)。
 - **Secrets**(GitHub → Settings → Secrets and variables → Actions):
   `SSH_PRIVATE_KEY` / `SSH_HOST` / `SSH_USER`(密钥绝不进 Git)。
 - 详细流程与标准见 [`standards/`](standards/README.md)。
