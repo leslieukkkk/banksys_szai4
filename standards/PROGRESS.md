@@ -8,9 +8,9 @@
 
 ## 当前状态 (最后更新: 2026-08-02 · by AI)
 
-- **阶段**:`US-4 开发完成,待 PR(六步流程第④步)`
-- **上一步完成**:`feature/8-online-prediction` 开发完成 —— ml/predict.py(加载/校验/预测)+ app.py 预测页(21 特征表单)+ 38 个测试全绿(覆盖率 96.5%);streamlit 冒烟通过。
-- **下一步 (TODO 第一条)**:✋等确认门 4 → 提交 push → PR(closes #8)。
+- **阶段**:`US-5 界面中文化(两页)开发完成,待 PR(六步流程第④步)`
+- **上一步完成**:`feature/11-chinese-ui` —— labels.py 中文字典(21 字段 + 48 选项 + 目标/扩展列);预测页 format_func 中文显示 + 错误信息中文化;**数据分析页同步中文化**(特征选择器/图表标题/刻度/数据预览列名);44 测试全绿(覆盖率 96.7%)。
+- **下一步 (TODO 第一条)**:✋等确认门 4 → 提交 push → PR(closes #11)。
 - **阻塞项**:无(等人类确认)
 
 ---
@@ -32,9 +32,11 @@
 - [x] 第⑤步 PR #2(https://github.com/leslieukkkk/banksys_szai4/pull/2)CI 全绿,人类已合并
 - [x] 第⑥步 CD 首次失败 → fix/1-cd-healthcheck-wait 修复(等待就绪循环,PR #3)合并后 CD 重跑成功:健康检查 `ok`,部署成功 http://<服务器>:8888
 - [x] US-3 离线训练(issue #4 / PR #5):已合并上线,RF-100 AUC=0.8929,镜像构建时训练
-- [x] US-2 数据分析页(issue #6 / PR #7):已合并上线,http://<服务器>:8888 数据分析页可用
-- [~] US-4 在线预测(issue #8 / feature/8-online-prediction):开发完成待 PR
-- [ ] 会话结束前更新本文件
+- [x] US-2 数据分析页(issue #6 / PR #7):已合并上线,数据分析页可用
+- [x] US-4 在线预测(issue #8 / PR #9 / PR #10):已合并上线,在线预测页可用(21 特征表单)
+- [x] 端口回退修复(PR #10):8888 被占自动顺延 8890,健康检查通过
+- [~] US-5 预测界面中文化(issue #11 / feature/11-chinese-ui):开发完成待 PR
+- [x] 会话结束前更新本文件
 
 ---
 
@@ -48,6 +50,7 @@
 | 2026-08-02 | 模型产物 `models/` 不进 Git,Docker 构建时训练生成 | 产物可重复生成,镜像与模型绑定,杜绝陈旧模型 |
 | 2026-08-02 | 主机端口固定 8888(不回退),容器内 8501 | 用户指定 8888;Streamlit 默认端口 8501 |
 | 2026-08-02 | 端口策略修订:首选 8888,预留区间 8888-8899 自动回退(保留 ADR 修订记录) | 共享服务器被其他项目容器占用 8888(CD 报 port already allocated);按 05 规范 §4 回退,不删除他人容器 |
+| 2026-08-02 | 预测界面中文化:`st.selectbox(format_func=labels.option_label)` 英文取值 + 中文显示 | 模型输入不变(仍为英文取值),仅显示层翻译;字典集中在 labels.py 可复用 |
 | 2026-08-02 | 健康检查用 `/_stcore/health` | Streamlit 无自定义路由,官方提供该健康端点,返回 `ok` |
 | 2026-08-02 | 基线模型选随机森林 RF-100(对比:LR AUC=0.807 距 0.80 门禁余量仅 0.007;RF-100 AUC=0.893,余量 0.09) | 门禁余量要留足,防 CI/服务器环境差异导致门禁误红;RF-100 训练耗时可接受 |
 | 2026-08-02 | 页面结构:单 `app.py` + 侧边栏 radio 导航;分析逻辑抽到 `analysis.py` 纯函数 | AppTest 可整体驱动;过滤/聚合/图表不依赖 Streamlit 即可单测(US-2 AC6) |
@@ -63,7 +66,7 @@
 - 现象:CD `docker run` 报 `Bind for :::8888 failed: port is already allocated`(exit 125),容器列表显示他人容器 `banksys`(8888->8888)占用。
   根因:共享教学服务器,其他项目在我们上次部署后抢占 8888;deploy.sh 只删自身容器(符合规范),故被阻塞。
   解决:按 05 规范 §4 改为首选 8888、区间 8888-8899 自动顺延空闲端口(不删除他人容器);最终端口由 CD 日志打印。
-  验证:fix/8-port-fallback 合并后 CD 重跑(待验证)。
+  验证:PR #10 合并后 CD 重跑成功 —— 8888 仍被占,自动顺延至 8890,健康检查 `ok`。
 - 现象:测试 `test_main_exit_code_follows_auc_gate` monkeypatch `train.MODEL_PATH` 后,真实 `models/model.joblib` 被写成假对象(线上预测页报错 `'object' object has no attribute 'predict_proba'`)。
   根因:`save_artifacts` 的默认参数 `model_path=MODEL_PATH` 在**函数定义时**绑定真实路径,运行期 monkeypatch 模块常量不生效;测试经 main() 间接把假模型写进了真实产物路径。
   解决:main() 路径测试改为 monkeypatch `save_artifacts` 为 no-op;`save_artifacts` 本身用显式 tmp_path 参数单测。
@@ -89,3 +92,5 @@
 - [x] US-1 初始化工程化与 CI/CD:六步流程完整跑通(建仓→分支→模块开发→本地自检→PR→人工合并→CD 部署),服务在主机 8888 运行,`/_stcore/health` 返回 `ok`
 - [x] US-3 离线训练与模型产物:`python -m ml.train` 闭环(模型+评估报告+test 预测文件),RF-100 holdout AUC=0.8929,门禁 0.80 通过;镜像构建时训练,模型随镜像上线
 - [x] US-2 数据分析交互页面:概览指标 + 类别/数值筛选联动 + 目标分布/类别认购占比/数值分布三图联动 + 数据预览,纯函数逻辑 100% 单测覆盖
+- [x] US-4 在线预测系统:21 特征点选表单(选项从训练数据动态生成)+ 输入校验(errors/warnings)+ 概率与是否认购输出;38 测试全绿,覆盖率 96.5%
+- [x] 端口回退:8888 被他人占用时自动顺延空闲端口(8888-8899),实际落点 8890,健康检查通过

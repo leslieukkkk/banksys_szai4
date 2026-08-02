@@ -11,6 +11,7 @@ import joblib
 import numpy as np
 import pandas as pd
 
+from labels import FEATURE_LABELS
 from ml.preprocessing import CATEGORICAL_FEATURES, NUMERIC_FEATURES
 from ml.train import FEATURES, MODEL_PATH
 
@@ -45,21 +46,22 @@ def validate_input(
     for col in CATEGORICAL_FEATURES:
         value = sample.get(col)
         if value is None or str(value).strip() == "":
-            errors.append(f"{col}: 必填")
+            errors.append(f"{FEATURE_LABELS[col]}({col}): 必填")
         elif value not in options[col]:
-            errors.append(f"{col}: 取值 '{value}' 不在训练数据取值范围内")
+            errors.append(f"{FEATURE_LABELS[col]}({col}): 取值 '{value}' 不在训练数据取值范围内")
     for col in NUMERIC_FEATURES:
         value = sample.get(col)
         if value is None:
-            errors.append(f"{col}: 必填")
+            errors.append(f"{FEATURE_LABELS[col]}({col}): 必填")
             continue
         if not isinstance(value, numbers.Real) or not np.isfinite(value):
-            errors.append(f"{col}: 必须为有效数字")
+            errors.append(f"{FEATURE_LABELS[col]}({col}): 必须为有效数字")
             continue
         lo, hi = numeric_ranges[col]
         if not lo <= value <= hi:
             warnings.append(
-                f"{col}: {value} 超出训练数据范围 [{lo:.1f}, {hi:.1f}],预测结果仅供参考"
+                f"{FEATURE_LABELS[col]}({col}): {value} 超出训练数据范围"
+                f" [{lo:.1f}, {hi:.1f}],预测结果仅供参考"
             )
     return errors, warnings
 

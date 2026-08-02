@@ -77,3 +77,17 @@ def test_make_numeric_hist(df):
     fig = analysis.make_numeric_hist(df, "age")
     assert len(fig.data) == 1
     assert fig.data[0].type == "histogram"
+
+
+def test_chart_titles_use_chinese_labels(df):
+    assert "职业" in analysis.make_category_target_bar(df, "job").layout.title.text
+    assert "认购占比" in analysis.make_category_target_bar(df, "job").layout.title.text
+    assert "年龄" in analysis.make_numeric_hist(df, "age").layout.title.text
+    assert "是否认购" in analysis.make_target_bar(df).layout.title.text
+
+
+def test_category_chart_ticks_use_chinese(df):
+    fig = analysis.make_category_target_bar(df, "job")
+    ticks = fig.layout.xaxis.ticktext
+    assert len(ticks) == df["job"].nunique()
+    assert all(any("一" <= ch <= "鿿" for ch in str(t)) for t in ticks)
