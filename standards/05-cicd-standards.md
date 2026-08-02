@@ -170,6 +170,7 @@ pip install -r requirements.txt -r requirements-dev.txt -i https://pypi.tuna.tsi
 | Windows 控制台 `UnicodeEncodeError('gbk' ... \u25b6)` | 日志/打印含特殊符号;改用纯 ASCII,或 `set PYTHONIOENCODING=utf-8` / `chcp 65001`。注意 pytest 会捕获输出掩盖此坑,必须真跑一次脚本 |
 | CI 红:`FileNotFoundError` 找不到数据 | 数据被 `.gitignore` 排除,干净 runner 上没有。公开教学数据可入库;敏感数据则在 CI 里下载/造样本 |
 | `docker run` 报 `port is already allocated`(exit 125) | 主机端口被占用;容器内端口固定、主机端口在预留区间自动回退(见第 4 节);`docker rm -f <APP>` 幂等替换自身 |
+| 健康检查 `curl: (56) Recv failure: Connection reset by peer`(容器刚 Up) | 服务启动慢(如 Streamlit 首启导入大依赖可达十几秒);curl 默认不重试 exit 56;改为等待就绪循环(`seq 1 20` + sleep 3 + `curl -fsS`),成功才继续 |
 | `git push` 卡住/`Recv failure`/`Connection reset` | SSH 22 被拦可切 443;HTTPS 偶发抖动则重试几次 |
 | Actions 读不到变量 | Secret 名是否拼错、是否在正确仓库 |
 | SSH 登录失败 | 私钥/公钥是否匹配、`authorized_keys`、用户权限 |
