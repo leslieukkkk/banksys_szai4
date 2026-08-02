@@ -1,0 +1,14 @@
+# 项目工具配置:ruff(格式/静态检查)与 pytest(见 02/03 规范)
+# ruff 配置:行宽 100(见 02 规范);覆盖率不计测试文件自身
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP"]
+
+[tool.coverage.run]
+omit = ["test_*.py"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

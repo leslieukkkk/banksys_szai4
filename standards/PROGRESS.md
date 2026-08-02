@@ -8,10 +8,10 @@
 
 ## 当前状态 (最后更新: 2026-08-02 · by AI)
 
-- **阶段**:`初始化`
-- **上一步完成**:读取 standards 全部文件;确认需求与技术选型(名称 `banksys_szai4` / Streamlit + scikit-learn / 端口 8888 / 数据进 Git);填写 `00-project-context.md`、`01-requirements.md`(US-1~US-4 带验收标准)。
-- **下一步 (TODO 第一条)**:等人类确认文档 → 第①步建仓(gh repo create)+ 提示配置 Secrets(SSH 三件套)。
-- **阻塞项**:无(等待人类确认文档与开始建仓)
+- **阶段**:`初始化(六步流程第④步)`
+- **上一步完成**:feature/1-project-init 模块 A(工程骨架)+ 模块 B(CI/CD 配置)开发完成;本地自检全绿(ruff format/check + pytest 1 passed + 覆盖率 100% ≥ 80% 门禁)。
+- **下一步 (TODO 第一条)**:✋等确认门 4 → 提交 push → 创建 PR(closes #1)。
+- **阻塞项**:无(等人类确认后进入第⑤步)
 
 ---
 
@@ -24,15 +24,14 @@
 - [x] 填写 `00-project-context.md`(项目身份/目录地图/占位符取值)
 - [x] 填写 `01-requirements.md`(US-1~US-4 用户故事 + 验收标准)
 - [x] 初始化本文件(PROGRESS 第一批 TODO)
-- [ ] ✋确认后:第①步 建仓 —— `git init` + `gh repo create banksys_szai4` + 提示配置 Secrets(`SSH_PRIVATE_KEY`/`SSH_HOST`/`SSH_USER`)
-- [ ] 第②步 从 main 开分支 `feature/1-project-init`(工程骨架 + US-1)
-- [ ] 第③步 模块 A:工程骨架(requirements/requirements-dev/Dockerfile/.gitignore/pyproject/README)
-- [ ] 第③步 模块 B:数据层 + 离线训练(ml/preprocessing.py、ml/train.py)+ 测试
-- [ ] 第③步 模块 C:Streamlit 数据分析页(app.py 页 1)+ 测试
-- [ ] 第③步 模块 D:在线预测页(app.py 页 2)+ 测试
-- [ ] 第④步 本地 CI 自检:ruff format/check + pytest + 覆盖率 ≥80% + 模型门禁 AUC ≥ 0.80
-- [ ] 第⑤步 push + `gh pr create`(closes #1),CI 复检,汇报后停下
+- [x] 第①步 建仓:`gh repo create banksys_szai4`(https://github.com/leslieukkkk/banksys_szai4);人类已配置 Secrets(gh secret list 核对通过)
+- [x] 第②步 从 main 开分支 `feature/1-project-init`(Issue #1 = US-1)
+- [x] 第③步 模块 A:工程骨架(requirements/requirements-dev/pyproject/app.py/tests/test_app.py)
+- [x] 第③步 模块 B:CI/CD(Dockerfile/deploy.sh/ci.yml/cd.yml/README)
+- [x] 第④步 本地 CI 自检:ruff format --check ✅ / ruff check ✅ / pytest --cov --cov-fail-under=80 ✅(1 passed, 100%)
+- [ ] 第⑤步 ✋确认后:git commit + push + `gh pr create`(closes #1),CI 复检,汇报后停下
 - [ ] 第⑥步 人类合并 → CD 自动部署 → 汇报端口 8888 + `/_stcore/health` 结果
+- [ ] 后续 US-3(离线训练)→ US-2(数据分析页)→ US-4(在线预测),每个新分支 + PR
 - [ ] 会话结束前更新本文件
 
 ---
