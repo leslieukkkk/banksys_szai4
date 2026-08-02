@@ -47,6 +47,7 @@
 | 2026-08-02 | `data/`(train/test.csv,~3.7MB 公开数据)提交进 Git | 公开教学数据,CI/CD 无需额外下载,流水线最简单(规范 05 第 7 节允许) |
 | 2026-08-02 | 模型产物 `models/` 不进 Git,Docker 构建时训练生成 | 产物可重复生成,镜像与模型绑定,杜绝陈旧模型 |
 | 2026-08-02 | 主机端口固定 8888(不回退),容器内 8501 | 用户指定 8888;Streamlit 默认端口 8501 |
+| 2026-08-02 | 端口策略修订:首选 8888,预留区间 8888-8899 自动回退(保留 ADR 修订记录) | 共享服务器被其他项目容器占用 8888(CD 报 port already allocated);按 05 规范 §4 回退,不删除他人容器 |
 | 2026-08-02 | 健康检查用 `/_stcore/health` | Streamlit 无自定义路由,官方提供该健康端点,返回 `ok` |
 | 2026-08-02 | 基线模型选随机森林 RF-100(对比:LR AUC=0.807 距 0.80 门禁余量仅 0.007;RF-100 AUC=0.893,余量 0.09) | 门禁余量要留足,防 CI/服务器环境差异导致门禁误红;RF-100 训练耗时可接受 |
 | 2026-08-02 | 页面结构:单 `app.py` + 侧边栏 radio 导航;分析逻辑抽到 `analysis.py` 纯函数 | AppTest 可整体驱动;过滤/聚合/图表不依赖 Streamlit 即可单测(US-2 AC6) |
@@ -59,6 +60,10 @@
   根因:Streamlit 首启需导入 pandas/pyarrow 等依赖,服务就绪可达十几秒;立即 curl 收到 connection reset(exit 56,curl 默认不重试)。
   解决:deploy.sh 改为等待就绪循环(20 次 × 3s,`curl -fsS` 成功后退出)。
   验证:fix/1-cd-healthcheck-wait 合并后 CD 重跑(待验证)。
+- 现象:CD `docker run` 报 `Bind for :::8888 failed: port is already allocated`(exit 125),容器列表显示他人容器 `banksys`(8888->8888)占用。
+  根因:共享教学服务器,其他项目在我们上次部署后抢占 8888;deploy.sh 只删自身容器(符合规范),故被阻塞。
+  解决:按 05 规范 §4 改为首选 8888、区间 8888-8899 自动顺延空闲端口(不删除他人容器);最终端口由 CD 日志打印。
+  验证:fix/8-port-fallback 合并后 CD 重跑(待验证)。
 - 现象:测试 `test_main_exit_code_follows_auc_gate` monkeypatch `train.MODEL_PATH` 后,真实 `models/model.joblib` 被写成假对象(线上预测页报错 `'object' object has no attribute 'predict_proba'`)。
   根因:`save_artifacts` 的默认参数 `model_path=MODEL_PATH` 在**函数定义时**绑定真实路径,运行期 monkeypatch 模块常量不生效;测试经 main() 间接把假模型写进了真实产物路径。
   解决:main() 路径测试改为 monkeypatch `save_artifacts` 为 no-op;`save_artifacts` 本身用显式 tmp_path 参数单测。
