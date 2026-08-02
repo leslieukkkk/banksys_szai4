@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 测试与检查缓存
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# 模型产物(不进 Git,训练可重复生成,见 standards/00 第 5 节)
+models/
+
+# 环境变量与密钥(绝不进 Git)
+.env
+.env.*
+!.env.example
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 编辑器
+.idea/
+.vscode/
