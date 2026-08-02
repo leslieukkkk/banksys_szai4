@@ -8,10 +8,10 @@
 
 ## 当前状态 (最后更新: 2026-08-02 · by AI)
 
-- **阶段**:`初始化(六步流程第④步)`
-- **上一步完成**:feature/1-project-init 模块 A(工程骨架)+ 模块 B(CI/CD 配置)开发完成;本地自检全绿(ruff format/check + pytest 1 passed + 覆盖率 100% ≥ 80% 门禁)。
-- **下一步 (TODO 第一条)**:✋等确认门 4 → 提交 push → 创建 PR(closes #1)。
-- **阻塞项**:无(等人类确认后进入第⑤步)
+- **阶段**:`已上线首版 · 修复 CD 健康检查中(六步流程第⑥步复盘)`
+- **上一步完成**:PR #2 已合并,CD 首次触发失败(健康检查 connection reset);已定位根因(Streamlit 首启慢)并在 `fix/1-cd-healthcheck-wait` 分支修复(deploy.sh 等待就绪循环)。
+- **下一步 (TODO 第一条)**:fix 分支 push + PR → 人工合并 → CD 重跑 → 验证 8888 健康检查。
+- **阻塞项**:无(等人类合并 fix PR)
 
 ---
 
@@ -29,8 +29,8 @@
 - [x] 第③步 模块 A:工程骨架(requirements/requirements-dev/pyproject/app.py/tests/test_app.py)
 - [x] 第③步 模块 B:CI/CD(Dockerfile/deploy.sh/ci.yml/cd.yml/README)
 - [x] 第④步 本地 CI 自检:ruff format --check ✅ / ruff check ✅ / pytest --cov --cov-fail-under=80 ✅(1 passed, 100%)
-- [ ] 第⑤步 ✋确认后:git commit + push + `gh pr create`(closes #1),CI 复检,汇报后停下
-- [ ] 第⑥步 人类合并 → CD 自动部署 → 汇报端口 8888 + `/_stcore/health` 结果
+- [x] 第⑤步 PR #2(https://github.com/leslieukkkk/banksys_szai4/pull/2)CI 全绿,人类已合并
+- [~] 第⑥步 CD 首次触发失败 → 已修复(deploy.sh 等待就绪),fix/1-cd-healthcheck-wait 待合并重跑
 - [ ] 后续 US-3(离线训练)→ US-2(数据分析页)→ US-4(在线预测),每个新分支 + PR
 - [ ] 会话结束前更新本文件
 
@@ -51,7 +51,11 @@
 
 ## 已知坑 (GOTCHAS)
 
-- 暂无真实故障;预置一条已知约束:Streamlit 不支持自定义 HTTP 路由,**健康检查必须用官方 `/_stcore/health` 端点**,不能用 `/health`。
+- 现象:CD 健康检查失败,日志 `curl: (56) Recv failure: Connection reset by peer`,容器显示 `Up Less than a second`。
+  根因:Streamlit 首启需导入 pandas/pyarrow 等依赖,服务就绪可达十几秒;立即 curl 收到 connection reset(exit 56,curl 默认不重试)。
+  解决:deploy.sh 改为等待就绪循环(20 次 × 3s,`curl -fsS` 成功后退出)。
+  验证:fix/1-cd-healthcheck-wait 合并后 CD 重跑(待验证)。
+- 预置约束:Streamlit 不支持自定义 HTTP 路由,**健康检查必须用官方 `/_stcore/health` 端点**,不能用 `/health`。
 
 ---
 

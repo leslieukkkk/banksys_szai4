@@ -24,8 +24,20 @@ if ! docker run -d --name "${APP}" --restart unless-stopped -p "${HOST_PORT}:${C
   exit 1
 fi
 
-# 本机健康检查(失败自动重试);失败则输出容器状态与本项目日志便于诊断
-if ! curl --fail --retry 10 --retry-delay 3 "http://127.0.0.1:${HOST_PORT}${HEALTHCHECK}"; then
+# 本机健康检查:Streamlit 首启要导入 pandas/pyarrow 等依赖,服务就绪可达十几秒,
+# 立即 curl 会收到 connection reset(exit 56,curl 默认不重试),故改为等待就绪循环。
+HEALTH_OK=0
+for i in $(seq 1 20); do
+  if curl -fsS "http://127.0.0.1:${HOST_PORT}${HEALTHCHECK}"; then
+    HEALTH_OK=1
+    break
+  fi
+  echo ">> 等待服务就绪(${i}/20)..."
+  sleep 3
+done
+
+# 仍失败则输出容器状态与本项目日志便于诊断
+if [ "${HEALTH_OK}" != "1" ]; then
   echo ">> 健康检查失败,容器状态:" >&2
   docker ps --filter "name=${APP}" >&2
   echo ">> ${APP} 容器日志:" >&2
