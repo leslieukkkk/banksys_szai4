@@ -31,6 +31,10 @@ def test_app_analysis_page_is_default():
     assert at.header[0].value == "📊 数据分析"
     # 概览指标渲染(US-2 AC1)
     assert len(at.metric) == 4
+    # 界面中文化(US-5):特征选择器显示中文,取值仍为英文列名
+    assert at.selectbox(key="analysis_cat_col").label == "类别特征"
+    assert at.selectbox(key="analysis_cat_col").value == "job"
+    assert at.selectbox(key="analysis_num_col").value == "age"
 
 
 def test_app_prediction_page_renders_full_form(monkeypatch):
@@ -46,6 +50,10 @@ def test_app_prediction_page_renders_full_form(monkeypatch):
     assert len(at.selectbox) == len(CATEGORICAL_FEATURES)
     assert len(at.number_input) == len(NUMERIC_FEATURES)
     assert len(at.button) == 1
+    # 界面中文化(US-5 AC1/AC2):标签为中文,取值仍为英文
+    assert at.selectbox(key="cat_job").label == "职业"
+    assert at.selectbox(key="cat_job").value == "admin."
+    assert at.number_input(key="num_age").label == "年龄"
 
 
 def test_app_prediction_missing_model_shows_hint(monkeypatch):

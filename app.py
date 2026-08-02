@@ -1,11 +1,13 @@
 """banksys_szai4 Streamlit 入口:侧边栏导航(数据分析 / 在线预测)。
 
-数据分析页(US-2)已实现,核心逻辑在 analysis.py;在线预测页(US-4)当前占位。
+数据分析页(US-2,核心逻辑 analysis.py)、在线预测页(US-4,核心逻辑 ml/predict.py)均已实现;
+界面中文化(US-5)由 labels.py 字典提供「英文取值 + 中文显示」。
 """
 
 import streamlit as st
 
 import analysis
+import labels
 from ml import predict as predict_ml
 from ml.preprocessing import CATEGORICAL_FEATURES, NUMERIC_FEATURES
 
@@ -38,16 +40,35 @@ def render_analysis_page() -> None:
     st.subheader("筛选联动")
     left, right = st.columns(2)
     with left:
-        cat_col = st.selectbox("类别特征", CATEGORICAL_FEATURES)
+        # 中文显示 + 英文取值:过滤逻辑仍用英文列名(US-5)
+        cat_col = st.selectbox(
+            "类别特征",
+            CATEGORICAL_FEATURES,
+            format_func=lambda col: labels.FEATURE_LABELS[col],
+            key="analysis_cat_col",
+        )
         cat_options = sorted(df[cat_col].dropna().unique())
         cat_values = st.multiselect(
-            f"{cat_col} 取值", cat_options, default=cat_options, key="cat_values"
+            f"{labels.FEATURE_LABELS[cat_col]} 取值",
+            cat_options,
+            default=cat_options,
+            format_func=labels.option_label,
+            key="cat_values",
         )
     with right:
-        num_col = st.selectbox("数值特征", NUMERIC_FEATURES)
+        num_col = st.selectbox(
+            "数值特征",
+            NUMERIC_FEATURES,
+            format_func=lambda col: labels.FEATURE_LABELS[col],
+            key="analysis_num_col",
+        )
         num_min, num_max = float(df[num_col].min()), float(df[num_col].max())
         num_range = st.slider(
-            f"{num_col} 范围", num_min, num_max, (num_min, num_max), key="num_range"
+            f"{labels.FEATURE_LABELS[num_col]} 范围",
+            num_min,
+            num_max,
+            (num_min, num_max),
+            key="num_range",
         )
 
     filtered = analysis.filter_data(
@@ -62,13 +83,14 @@ def render_analysis_page() -> None:
 
     st.subheader("目标分布")
     st.plotly_chart(analysis.make_target_bar(filtered), use_container_width=True)
-    st.subheader(f"{cat_col} 各取值认购占比")
+    st.subheader(f"{labels.FEATURE_LABELS[cat_col]} 各取值认购占比")
     st.plotly_chart(analysis.make_category_target_bar(filtered, cat_col), use_container_width=True)
-    st.subheader(f"{num_col} 分布")
+    st.subheader(f"{labels.FEATURE_LABELS[num_col]} 分布")
     st.plotly_chart(analysis.make_numeric_hist(filtered, num_col), use_container_width=True)
 
     st.subheader("数据预览")
-    st.dataframe(filtered.head(100))
+    display_columns = {**labels.FEATURE_LABELS, **labels.EXTRA_COLUMN_LABELS}
+    st.dataframe(filtered.head(100).rename(columns=display_columns))
 
 
 def render_prediction_page() -> None:
@@ -90,12 +112,22 @@ def render_prediction_page() -> None:
         columns = st.columns(2)
         for i, col in enumerate(CATEGORICAL_FEATURES):
             with columns[i % 2]:
-                sample[col] = st.selectbox(col, options[col], key=f"cat_{col}")
+                # 中文显示 + 英文取值:模型输入不变,仅界面翻译(US-5)
+                sample[col] = st.selectbox(
+                    labels.FEATURE_LABELS[col],
+                    options[col],
+                    format_func=labels.option_label,
+                    key=f"cat_{col}",
+                )
         for i, col in enumerate(NUMERIC_FEATURES):
             with columns[i % 2]:
                 lo, hi = numeric_ranges[col]
                 sample[col] = st.number_input(
-                    col, min_value=lo, max_value=hi, value=(lo + hi) / 2, key=f"num_{col}"
+                    labels.FEATURE_LABELS[col],
+                    min_value=lo,
+                    max_value=hi,
+                    value=(lo + hi) / 2,
+                    key=f"num_{col}",
                 )
         submitted = st.form_submit_button("预测是否认购")
 

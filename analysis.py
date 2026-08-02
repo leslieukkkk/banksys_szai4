@@ -6,6 +6,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+import labels
 from ml.preprocessing import CATEGORICAL_FEATURES, NUMERIC_FEATURES, TARGET, load_data
 
 TRAIN_PATH = Path(__file__).resolve().parent / "data" / "train.csv"
@@ -54,34 +55,44 @@ def target_rate_by_category(df: pd.DataFrame, col: str) -> pd.DataFrame:
 
 
 def make_target_bar(df: pd.DataFrame) -> go.Figure:
-    """目标 yes/no 计数柱状图。"""
+    """目标 no/yes 计数柱状图(刻度中文化)。"""
     counts = df[TARGET].value_counts().reindex(["no", "yes"]).fillna(0)
-    return px.bar(
+    fig = px.bar(
         x=counts.index,
         y=counts.values,
-        labels={"x": TARGET, "y": "数量"},
-        title=f"{TARGET} 分布(当前筛选)",
+        labels={"x": "是否认购", "y": "数量"},
+        title="是否认购分布(当前筛选)",
     )
+    fig.update_xaxes(
+        ticktext=[labels.TARGET_LABELS[v] for v in counts.index],
+        tickvals=counts.index,
+    )
+    return fig
 
 
 def make_category_target_bar(df: pd.DataFrame, col: str) -> go.Figure:
-    """单类别特征各取值认购占比柱状图。"""
+    """单类别特征各取值认购占比柱状图(字段名与刻度中文化)。"""
     rate = target_rate_by_category(df, col)
-    return px.bar(
+    fig = px.bar(
         rate,
         x=col,
         y="subscribe_rate",
-        labels={"subscribe_rate": "认购占比"},
-        title=f"{col} 各取值认购占比(当前筛选)",
+        labels={"x": labels.FEATURE_LABELS[col], "subscribe_rate": "认购占比"},
+        title=f"{labels.FEATURE_LABELS[col]} 各取值认购占比(当前筛选)",
     )
+    fig.update_xaxes(
+        ticktext=[labels.option_label(v) for v in rate[col]],
+        tickvals=rate[col],
+    )
+    return fig
 
 
 def make_numeric_hist(df: pd.DataFrame, col: str) -> go.Figure:
-    """数值特征分布直方图。"""
+    """数值特征分布直方图(字段名中文化)。"""
     return px.histogram(
         df,
         x=col,
         nbins=30,
-        labels={col: col},
-        title=f"{col} 分布(当前筛选)",
+        labels={col: labels.FEATURE_LABELS[col]},
+        title=f"{labels.FEATURE_LABELS[col]} 分布(当前筛选)",
     )
