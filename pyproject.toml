@@ -12,3 +12,4 @@ omit = ["test_*.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]

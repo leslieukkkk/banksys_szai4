@@ -8,10 +8,10 @@
 
 ## 当前状态 (最后更新: 2026-08-02 · by AI)
 
-- **阶段**:`已上线首版 · 修复 CD 健康检查中(六步流程第⑥步复盘)`
-- **上一步完成**:PR #2 已合并,CD 首次触发失败(健康检查 connection reset);已定位根因(Streamlit 首启慢)并在 `fix/1-cd-healthcheck-wait` 分支修复(deploy.sh 等待就绪循环)。
-- **下一步 (TODO 第一条)**:fix 分支 push + PR → 人工合并 → CD 重跑 → 验证 8888 健康检查。
-- **阻塞项**:无(等人类合并 fix PR)
+- **阶段**:`US-3 开发完成,待 PR(六步流程第④步)`
+- **上一步完成**:`feature/4-offline-training` 开发完成 —— ml/preprocessing.py + ml/train.py + 10 个测试;RF-100 模型 holdout AUC=0.8929;本地自检全绿(覆盖率 98.7%);全量训练产物已生成(models/,不进 Git)。
+- **下一步 (TODO 第一条)**:✋等确认门 4 → 提交 push → PR(closes #4)。
+- **阻塞项**:无(等人类确认)
 
 ---
 
@@ -30,8 +30,8 @@
 - [x] 第③步 模块 B:CI/CD(Dockerfile/deploy.sh/ci.yml/cd.yml/README)
 - [x] 第④步 本地 CI 自检:ruff format --check ✅ / ruff check ✅ / pytest --cov --cov-fail-under=80 ✅(1 passed, 100%)
 - [x] 第⑤步 PR #2(https://github.com/leslieukkkk/banksys_szai4/pull/2)CI 全绿,人类已合并
-- [~] 第⑥步 CD 首次触发失败 → 已修复(deploy.sh 等待就绪),fix/1-cd-healthcheck-wait 待合并重跑
-- [ ] 后续 US-3(离线训练)→ US-2(数据分析页)→ US-4(在线预测),每个新分支 + PR
+- [x] 第⑥步 CD 首次失败 → fix/1-cd-healthcheck-wait 修复(等待就绪循环,PR #3)合并后 CD 重跑成功:健康检查 `ok`,部署成功 http://<服务器>:8888
+- [ ] 后续 US-3(离线训练 + 模型门禁 AUC ≥ 0.80)→ US-2(数据分析页)→ US-4(在线预测),每个新分支 + PR
 - [ ] 会话结束前更新本文件
 
 ---
@@ -46,6 +46,7 @@
 | 2026-08-02 | 模型产物 `models/` 不进 Git,Docker 构建时训练生成 | 产物可重复生成,镜像与模型绑定,杜绝陈旧模型 |
 | 2026-08-02 | 主机端口固定 8888(不回退),容器内 8501 | 用户指定 8888;Streamlit 默认端口 8501 |
 | 2026-08-02 | 健康检查用 `/_stcore/health` | Streamlit 无自定义路由,官方提供该健康端点,返回 `ok` |
+| 2026-08-02 | 基线模型选随机森林 RF-100(对比:LR AUC=0.807 距 0.80 门禁余量仅 0.007;RF-100 AUC=0.893,余量 0.09) | 门禁余量要留足,防 CI/服务器环境差异导致门禁误红;RF-100 训练耗时可接受 |
 
 ---
 
@@ -55,10 +56,14 @@
   根因:Streamlit 首启需导入 pandas/pyarrow 等依赖,服务就绪可达十几秒;立即 curl 收到 connection reset(exit 56,curl 默认不重试)。
   解决:deploy.sh 改为等待就绪循环(20 次 × 3s,`curl -fsS` 成功后退出)。
   验证:fix/1-cd-healthcheck-wait 合并后 CD 重跑(待验证)。
+- 现象:`conda run python -m ml.train` 崩溃 `UnicodeEncodeError: 'gbk' codec can't encode '�'`,pytest 却全绿。
+  根因:Windows 控制台 GBK 编码,脚本 print 含中文(规范 05 §7 预置坑;pytest 捕获输出会掩盖,必须真跑一次脚本)。
+  解决:ml/train.py 的 print 全部改纯 ASCII,并加注释说明。
+  验证:真跑 `python -m ml.train` 输出正常。
 - 预置约束:Streamlit 不支持自定义 HTTP 路由,**健康检查必须用官方 `/_stcore/health` 端点**,不能用 `/health`。
 
 ---
 
 ## 里程碑 (DONE)
 
-- [ ] <完成一项就勾选,写一句话说明结果>
+- [x] US-1 初始化工程化与 CI/CD:六步流程完整跑通(建仓→分支→模块开发→本地自检→PR→人工合并→CD 部署),服务在主机 8888 运行,`/_stcore/health` 返回 `ok`
